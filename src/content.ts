@@ -4,7 +4,9 @@ const getSearchedURL = (companyName: string): string => {
 
 const companiesMap = new Map<string, HTMLElement[]>();
 
-const createCompanyTooltip = (searchedCompanies: HTMLElement[]): HTMLDivElement => {
+const createCompanyTooltip = (searchedCompanies: HTMLElement[]): HTMLDivElement | null => {
+  if (!searchedCompanies.length) return null;
+
   const tooltipDom = document.createElement('div');
 
   tooltipDom.addEventListener('click', (e) => e.stopPropagation());
@@ -27,6 +29,10 @@ const createCompanyTooltip = (searchedCompanies: HTMLElement[]): HTMLDivElement 
 };
 
 const parseComapnyNames = (rawCompanyName: string): string[] => {
+  if (rawCompanyName.includes('(') && rawCompanyName.includes(')')) {
+    return [rawCompanyName.split('(')[0], rawCompanyName.split('(')[1].slice(0, -1)];
+  }
+
   return [rawCompanyName];
 };
 
@@ -47,9 +53,11 @@ const getSearchedCompany = async (companyName: string): Promise<HTMLElement[]> =
 const observer = new MutationObserver(() => {
   const jobCardElements = document.querySelectorAll('[data-cy="job-card"]');
 
-  [...jobCardElements].forEach(async (jobCardNode, index) => {
+  [...jobCardElements].forEach(async (jobCardNode) => {
     const companyNameNode = jobCardNode.getElementsByClassName('job-card-company-name')[0] as HTMLElement;
     const companyNames = parseComapnyNames(companyNameNode.innerText);
+
+    if (companyNameNode.getElementsByClassName('military-tooltip').length) return;
 
     companyNameNode.classList.add('military-tooltip-wrapper');
 
@@ -62,36 +70,46 @@ const observer = new MutationObserver(() => {
 
     const companiesTooltip = createCompanyTooltip(searchedCompanies);
 
-    companyNameNode.appendChild(companiesTooltip);
+    if (companiesTooltip) {
+      companyNameNode.appendChild(companiesTooltip);
+    }
   });
 });
 
-const jobList = document.querySelector('[data-cy="job-list"]');
+let jobList: Element;
 
-if (jobList) {
-  observer.observe(jobList, { childList: true });
+const bodyObserver = new MutationObserver(() => {
+  const newJobList = document.querySelector('[data-cy="job-list"]');
 
-  const styleNode = document.createElement('style');
+  if (newJobList && newJobList !== jobList) {
+    observer.disconnect();
+    observer.observe(newJobList, { childList: true });
+    jobList = newJobList;
+  }
+});
 
-  styleNode.innerHTML = `
-    .military-tooltip {
-      position: absolute;
-      left: 0;
-      bottom: 101%;
-      display: none;
-      flex-direction: column;
-      gap: 4px;
-      padding: 6px;
-      border: 1px solid #ddd;
-      box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
-      border-radius: 4px;
-      background: white;
-    }
+bodyObserver.observe(document.body, { subtree: true, childList: true });
 
-    .military-tooltip-wrapper:hover .military-tooltip {
-      display: flex;
-    }
-  `;
+const styleNode = document.createElement('style');
 
-  document.head.appendChild(styleNode);
-}
+styleNode.innerHTML = `
+  .military-tooltip {
+    position: absolute;
+    left: 0;
+    bottom: 101%;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 6px;
+    border: 1px solid #ddd;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+    border-radius: 4px;
+    background: white;
+  }
+
+  .military-tooltip-wrapper:hover .military-tooltip {
+    display: flex;
+  }
+`;
+
+document.head.appendChild(styleNode);
