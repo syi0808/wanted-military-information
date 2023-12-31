@@ -54,7 +54,7 @@ const observer = new MutationObserver(() => {
   const jobCardElements = document.querySelectorAll('[data-cy="job-card"]');
 
   [...jobCardElements].forEach(async (jobCardNode) => {
-    const companyNameNode = jobCardNode.getElementsByTagName('span')[0] as HTMLElement;
+    const companyNameNode = [...jobCardNode.getElementsByTagName('span')].at(-1) as HTMLElement;
     const companyNames = parseComapnyNames(companyNameNode.innerText);
 
     if (companyNameNode.getElementsByClassName('military-tooltip').length) return;
