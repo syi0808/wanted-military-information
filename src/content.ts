@@ -96,7 +96,7 @@ styleNode.innerHTML = `
   .military-tooltip {
     position: absolute;
     left: 0;
-    bottom: 101%;
+    top: 100%;
     display: flex;
     flex-direction: column;
     gap: 4px;
